@@ -1,0 +1,22 @@
+
+#bigbox {
+	height: 496px;
+	width: 496px;
+	z-index: 1;
+	background-color: red;
+	vertical-align: middle;
+	margin: auto;
+	border: solid 2px black;
+}
+
+#dragbox {
+	height: 46px;
+	width: 46px;
+	background-color: green;
+	top: 45%;
+	left: 45%;
+	border: solid 2px black;
+	z-index: 2;
+	position: relative;
+	text-align: center;
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Dragging a green box on a red field (NO LIBRARIES)</title>
+		<link rel="stylesheet" href="dragbox.css" />
+
+	</head>
+	<body>
+		<div id="bigbox" ondragover="return dragOver(event)">
+			<div id="dragbox" draggable="true" ondragstart="dragStart(event)" ondrag="drag(event)" ondragend="dragEnd(event)">
+				<div id='txt'>0, 0</div>
+			</div>
+			<img id="blank" src='blank.gif' width='50px' style="opacity:0"/>
+		</div>
+
+		<!-- NO 3rd-Party LIBRARIES -->
+		<script type="text/javascript" src="dragbox.js"></script>
+	</body>
+</html>
