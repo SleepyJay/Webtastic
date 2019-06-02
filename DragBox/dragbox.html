@@ -3,18 +3,12 @@
 	<head>
 		<title>Dragging a green box on a red field (NO LIBRARIES)</title>
 		<link rel="stylesheet" href="dragbox.css" />
+		<!-- <script type="text/javascript" src="old.js"></script> -->
 
 	</head>
 	<body>
-		<div id="bigbox" ondragover="return Application.Dragging.dragOver(event)">
-			<div id="dragbox" draggable="true"
-				ondragstart="Application.Dragging.dragStart(event)"
-				ondrag="Application.Dragging.drag(event)"
-				ondragend="Application.Dragging.dragEnd(event)">
-				<div id='txt'>0, 0</div>
-			</div>
-			<img id="blank" src='blank.gif' width='50px' style="opacity:0"/>
-		</div>
+		<div id="bigbox" />
+		<img id="blank" src='blank.gif' width='1px' style="opacity:0; position: absolute;"/>
 
 		<!-- NO 3rd-Party LIBRARIES -->
 		<script type="text/javascript" src="dragbox.js"></script>

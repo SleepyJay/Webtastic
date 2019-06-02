@@ -3,13 +3,15 @@ Application = {
 	Classes: {},
 	Dragging: undefined,
 
-	BOX_SIZE: 24,
 	greeny: undefined,
 
 	load: function(e) {
 		console.log("LOaDED");
 		this.bigbox = document.getElementById('bigbox');
 		this.blank = document.getElementById('blank');
+
+		this.greeny = new this.Classes.DragBox();
+		this.yellow = new this.Classes.DragBox('yellow');
 	},
 };
 
@@ -18,7 +20,7 @@ Application.Dragging = new (class Dragging {
 		let box_width = parseInt(ev.target.offsetWidth/2) + "px";
 		let box_height = parseInt(ev.target.offsetHeight/2) + "px";
 
-		ev.dataTransfer.effectAllowed='move';
+		ev.dataTransfer.effectAllowed = 'move';
 		ev.dataTransfer.setDragImage(Application.blank, box_width, box_height);
 	}
 
@@ -27,45 +29,56 @@ Application.Dragging = new (class Dragging {
 	}
 
 	drag(ev) {
-		let bigbox = Application.bigbox;
-		let BOX_SIZE = Application.BOX_SIZE;
+		let dragbox = ev.target;
+		let posX = (ev.x - dragbox.offsetWidth/2);
+		let posY = (ev.y - dragbox.offsetHeight/2);
 
-		var dragbox = ev.target;
-		var posX = (ev.x - BOX_SIZE);
-		var posY = (ev.y - BOX_SIZE);
-
-		var offCenterPosX = ev.x - bigbox.offsetLeft - bigbox.offsetWidth/2;
-		var offCenterPosY = ev.y - bigbox.offsetTop - bigbox.offsetHeight/2;
-
-		var maxX = bigbox.offsetWidth/2 - dragbox.offsetWidth/2;
-		var minX = -bigbox.offsetWidth/2 + dragbox.offsetWidth/2;
-		var maxY = bigbox.offsetHeight/2 - dragbox.offsetHeight/2;
-		var minY = -bigbox.offsetHeight/2 + dragbox.offsetHeight/2;
-
-		if(offCenterPosX > maxX) {
-			let border_right = getComputedStyle(dragbox).getPropertyValue('border-right-width');
-			posX = bigbox.offsetLeft + bigbox.offsetWidth - BOX_SIZE * 2 - parseInt(border_right);
-		} else if(offCenterPosX < minX) {
-			posX = bigbox.offsetLeft;
-		}
-
-		if(offCenterPosY > maxY) {
-			let border_left = getComputedStyle(dragbox).getPropertyValue('border-left-width');
-			posY = bigbox.offsetTop + bigbox.offsetHeight - BOX_SIZE * 2 - parseInt(border_left);
-		} else if(offCenterPosY < minY) {
-			posY = bigbox.offsetTop;
-		}
+		let cor = this.correctForCollisions(ev);
+		posX = cor.posX || posX;
+		posY = cor.posY || posY;
+		let locX = cor.locX;
+		let locY = cor.locY;
 
 		dragbox.style.position = "absolute";
-		dragbox.style.left = posX+'px';
-		dragbox.style.top = posY+'px';
-
-		ev.target.innerHTML = offCenterPosX + ", " + offCenterPosY;
+		dragbox.style.left = posX +'px';
+		dragbox.style.top = posY +'px';
+		dragbox.innerHTML = locX + ", " + locY;
 	}
 
 	correctForCollisions(ev) {
 		let bigbox = Application.bigbox;
+		let dragbox = ev.target;
 
+		let cor = {};
+
+		let offCenterPosX = ev.x - bigbox.offsetLeft - bigbox.offsetWidth/2;
+		let offCenterPosY = ev.y - bigbox.offsetTop - bigbox.offsetHeight/2;
+
+		if(offCenterPosX > dragbox.Object.maxX) {
+			cor.posX = bigbox.offsetLeft + bigbox.offsetWidth - dragbox.offsetWidth;
+			cor.locX = dragbox.Object.maxX;
+		}
+		else if(offCenterPosX < dragbox.Object.minX) {
+			cor.posX = bigbox.offsetLeft;
+			cor.locX = dragbox.Object.minX;
+		}
+		else {
+			cor.locX = offCenterPosX;
+		}
+
+		if(offCenterPosY > dragbox.Object.maxY) {
+			cor.posY = bigbox.offsetTop + bigbox.offsetHeight - dragbox.offsetHeight;
+			cor.locY = dragbox.Object.maxY;
+		}
+		else if(offCenterPosY < dragbox.Object.minY) {
+			cor.posY = bigbox.offsetTop;
+			cor.locY = -dragbox.Object.maxY;
+		}
+		else {
+			cor.locY = offCenterPosY;
+		}
+
+		return cor;
 	}
 
 	dragOver(ev) {
@@ -80,18 +93,47 @@ Application.Dragging = new (class Dragging {
 	}
 })();
 
-// Application.Classes.DragBox = class DragBox {
-// 	constructor() {
-// 		this.foo = 88;
+Application.Classes.DragBox = class DragBox {
+	constructor(color="green") {
+		let bigbox = Application.bigbox;
 
-// 		let el = document.createElement("DIV");
-// 		console.log(el);
+		let el = document.createElement("SPAN");
+		el.className = 'dragbox';
+		el.setAttribute("draggable", "true");
+		el.setAttribute("ondragstart", "Application.Dragging.dragStart(event)");
+		el.setAttribute("ondrag", "Application.Dragging.drag(event)");
+		el.setAttribute("ondragend", "Application.Dragging.dragEnd(event)");
+		el.style.backgroundColor = color;
 
-// 		return el;
-// 	}
-// }
+		bigbox.appendChild(el);
 
+		let compStyle = getComputedStyle(el);
+
+
+		el.style.left = bigbox.offsetLeft + bigbox.offsetWidth/2 - el.offsetWidth/2 + "px";
+		el.style.top =  bigbox.offsetTop + bigbox.offsetHeight/2 - el.offsetHeight/2 + "px";
+		// el.style.position = "relative";
+
+
+
+
+		let locX = 0; //ev.x - bigbox.offsetLeft - bigbox.offsetWidth/2;
+		let locY = 0; //ev.y - bigbox.offsetTop - bigbox.offsetHeight/2;
+		el.innerHTML = locX + ", " + locY;
+
+		this.maxX =  bigbox.offsetWidth/2 - el.offsetWidth/2;
+		this.minX = -bigbox.offsetWidth/2 + el.offsetWidth/2;
+		this.maxY =  bigbox.offsetHeight/2 - el.offsetHeight/2;
+		this.minY = -bigbox.offsetHeight/2 + el.offsetHeight/2;
+
+		this.border_left = parseInt(compStyle.getPropertyValue('border-left-width'));
+		this.border_right = parseInt(compStyle.getPropertyValue('border-right-width'));
+
+		el.Object = this;
+		this.element = el;
+		return this.element;
+	}
+}
 
 addEventListener('load', Application.load());
-
 
