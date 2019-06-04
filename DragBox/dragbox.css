@@ -1,18 +1,24 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
 
 #bigbox {
-	height: 496px;
-	width: 496px;
+	height: 500px;
+	width: 500px;
 	z-index: 1;
 	background-color: red;
 	vertical-align: middle;
 	margin: auto;
 	border: solid 2px black;
+	position: relative;
 }
 
 
 .dragbox {
-	height: 46px;
-	width: 46px;
+	height: 50px;
+	width: 50px;
 	border: solid 2px black;
 	z-index: 2;
 	position: absolute;

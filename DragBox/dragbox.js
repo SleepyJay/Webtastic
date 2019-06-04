@@ -3,8 +3,6 @@ Application = {
 	Classes: {},
 	Dragging: undefined,
 
-	greeny: undefined,
-
 	load: function(e) {
 		console.log("LOaDED");
 		this.bigbox = document.getElementById('bigbox');
@@ -24,59 +22,44 @@ Application.Dragging = new (class Dragging {
 		ev.dataTransfer.setDragImage(Application.blank, box_width, box_height);
 	}
 
-	dragEnd(ev) {
-		// Empty
-	}
+	dragEnd(ev) { /* EMPTY */ }
 
 	drag(ev) {
 		let dragbox = ev.target;
-		let posX = (ev.x - dragbox.offsetWidth/2);
+		let posX = (ev.x - Application.bigbox.offsetWidth/2);
 		let posY = (ev.y - dragbox.offsetHeight/2);
+		let pos = this.correctForCollisions(dragbox, posX, posY);
 
-		let cor = this.correctForCollisions(ev);
-		posX = cor.posX || posX;
-		posY = cor.posY || posY;
-		let locX = cor.locX;
-		let locY = cor.locY;
-
-		dragbox.style.position = "absolute";
-		dragbox.style.left = posX +'px';
-		dragbox.style.top = posY +'px';
-		dragbox.innerHTML = locX + ", " + locY;
+		dragbox.Object.setPostition(pos.posX, pos.posY, pos.locX, pos.locY);
 	}
 
-	correctForCollisions(ev) {
+	correctForCollisions(dragbox, posX, posY) {
 		let bigbox = Application.bigbox;
-		let dragbox = ev.target;
-
 		let cor = {};
 
-		let offCenterPosX = ev.x - bigbox.offsetLeft - bigbox.offsetWidth/2;
-		let offCenterPosY = ev.y - bigbox.offsetTop - bigbox.offsetHeight/2;
-
-		if(offCenterPosX > dragbox.Object.maxX) {
-			cor.posX = bigbox.offsetLeft + bigbox.offsetWidth - dragbox.offsetWidth;
-			cor.locX = dragbox.Object.maxX;
+		// allow overlapping borders
+		if(posX <= dragbox.Object.minX) {
+			cor.posX = dragbox.Object.minX;
 		}
-		else if(offCenterPosX < dragbox.Object.minX) {
-			cor.posX = bigbox.offsetLeft;
-			cor.locX = dragbox.Object.minX;
+		else if(posX >= dragbox.Object.maxX) {
+			cor.posX = dragbox.Object.maxX;
 		}
 		else {
-			cor.locX = offCenterPosX;
+			cor.posX = posX;
 		}
 
-		if(offCenterPosY > dragbox.Object.maxY) {
-			cor.posY = bigbox.offsetTop + bigbox.offsetHeight - dragbox.offsetHeight;
-			cor.locY = dragbox.Object.maxY;
+		if(posY <= dragbox.Object.minY) {
+			cor.posY = dragbox.Object.minY;
 		}
-		else if(offCenterPosY < dragbox.Object.minY) {
-			cor.posY = bigbox.offsetTop;
-			cor.locY = -dragbox.Object.maxY;
+		else if(posY >= dragbox.Object.maxY) {
+			cor.posY = dragbox.Object.maxY;
 		}
 		else {
-			cor.locY = offCenterPosY;
+			cor.posY = posY;
 		}
+
+		cor.locX = cor.posX - bigbox.offsetWidth/2 + dragbox.offsetWidth/2;
+		cor.locY = cor.posY - bigbox.offsetHeight/2 + dragbox.offsetHeight/2;
 
 		return cor;
 	}
@@ -106,32 +89,55 @@ Application.Classes.DragBox = class DragBox {
 		el.style.backgroundColor = color;
 
 		bigbox.appendChild(el);
+		this.element = el;
+
+		let go_left = bigbox.offsetWidth/2 - el.offsetWidth/2;
+		let go_top  = bigbox.offsetHeight/2 - el.offsetHeight/2;
 
 		let compStyle = getComputedStyle(el);
+		this.border_size = parseInt(compStyle.borderWidth);
 
-
-		el.style.left = bigbox.offsetLeft + bigbox.offsetWidth/2 - el.offsetWidth/2 + "px";
-		el.style.top =  bigbox.offsetTop + bigbox.offsetHeight/2 - el.offsetHeight/2 + "px";
-		// el.style.position = "relative";
-
-
-
-
-		let locX = 0; //ev.x - bigbox.offsetLeft - bigbox.offsetWidth/2;
-		let locY = 0; //ev.y - bigbox.offsetTop - bigbox.offsetHeight/2;
-		el.innerHTML = locX + ", " + locY;
-
-		this.maxX =  bigbox.offsetWidth/2 - el.offsetWidth/2;
-		this.minX = -bigbox.offsetWidth/2 + el.offsetWidth/2;
-		this.maxY =  bigbox.offsetHeight/2 - el.offsetHeight/2;
-		this.minY = -bigbox.offsetHeight/2 + el.offsetHeight/2;
-
-		this.border_left = parseInt(compStyle.getPropertyValue('border-left-width'));
-		this.border_right = parseInt(compStyle.getPropertyValue('border-right-width'));
+		this.setPostition(go_left, go_top, 0, 0);
+		this.setMinMax();
 
 		el.Object = this;
-		this.element = el;
 		return this.element;
+	}
+
+	setPostition(px, py, lx=px, ly=py) {
+		this.element.style.left = px +'px';
+		this.element.style.top = py +'px';
+		this.element.innerHTML = lx + ", " + ly;
+	}
+
+	setMinMax() {
+		this.minX =  -this.border_size;
+		this.maxX =  Application.bigbox.offsetWidth  - this.element.offsetWidth - this.border_size;
+
+		this.minY = -this.border_size;
+		this.maxY =  Application.bigbox.offsetHeight - this.element.offsetHeight - this.border_size;
+
+
+
+		// if(posX <= -borderSize) {
+		// 	cor.posX = -borderSize;
+		// }
+		// else if(posX >= bigbox.offsetWidth - dragbox.offsetWidth - borderSize) {
+		// 	cor.posX = bigbox.offsetWidth - dragbox.offsetWidth - borderSize;
+		// }
+		// else {
+		// 	cor.posX = posX;
+		// }
+
+		// if(posY <= -borderSize) {
+		// 	cor.posY = -borderSize;
+		// }
+		// else if(posY >= bigbox.offsetHeight - dragbox.offsetHeight - borderSize) {
+		// 	cor.posY = bigbox.offsetHeight - dragbox.offsetHeight - borderSize;
+		// }
+		// else {
+		// 	cor.posY = posY;
+		// }
 	}
 }
 
