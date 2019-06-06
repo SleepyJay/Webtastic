@@ -2,6 +2,7 @@
 Application = {
 	Classes: {},
 	Dragging: undefined,
+	dragboxes: [],
 
 	load: function(e) {
 		console.log("LOaDED");
@@ -10,58 +11,21 @@ Application = {
 
 		this.greeny = new this.Classes.DragBox();
 		this.yellow = new this.Classes.DragBox('yellow');
+
+		this.dragboxes = [this.greeny, this.yellow];
 	},
 };
 
 Application.Dragging = new (class Dragging {
 	dragStart(ev) {
-		let box_width = parseInt(ev.target.offsetWidth/2) + "px";
-		let box_height = parseInt(ev.target.offsetHeight/2) + "px";
-
 		ev.dataTransfer.effectAllowed = 'move';
-		ev.dataTransfer.setDragImage(Application.blank, box_width, box_height);
+		ev.dataTransfer.setDragImage(Application.blank, 0, 0);
 	}
 
 	dragEnd(ev) { /* EMPTY */ }
 
 	drag(ev) {
-		let dragbox = ev.target;
-		let posX = (ev.x - Application.bigbox.offsetWidth/2);
-		let posY = (ev.y - dragbox.offsetHeight/2);
-		let pos = this.correctForCollisions(dragbox, posX, posY);
-
-		dragbox.Object.setPostition(pos.posX, pos.posY, pos.locX, pos.locY);
-	}
-
-	correctForCollisions(dragbox, posX, posY) {
-		let bigbox = Application.bigbox;
-		let cor = {};
-
-		// allow overlapping borders
-		if(posX <= dragbox.Object.minX) {
-			cor.posX = dragbox.Object.minX;
-		}
-		else if(posX >= dragbox.Object.maxX) {
-			cor.posX = dragbox.Object.maxX;
-		}
-		else {
-			cor.posX = posX;
-		}
-
-		if(posY <= dragbox.Object.minY) {
-			cor.posY = dragbox.Object.minY;
-		}
-		else if(posY >= dragbox.Object.maxY) {
-			cor.posY = dragbox.Object.maxY;
-		}
-		else {
-			cor.posY = posY;
-		}
-
-		cor.locX = cor.posX - bigbox.offsetWidth/2 + dragbox.offsetWidth/2;
-		cor.locY = cor.posY - bigbox.offsetHeight/2 + dragbox.offsetHeight/2;
-
-		return cor;
+		ev.target.Object.resolveMove(ev);
 	}
 
 	dragOver(ev) {
@@ -78,8 +42,6 @@ Application.Dragging = new (class Dragging {
 
 Application.Classes.DragBox = class DragBox {
 	constructor(color="green") {
-		let bigbox = Application.bigbox;
-
 		let el = document.createElement("SPAN");
 		el.className = 'dragbox';
 		el.setAttribute("draggable", "true");
@@ -88,56 +50,163 @@ Application.Classes.DragBox = class DragBox {
 		el.setAttribute("ondragend", "Application.Dragging.dragEnd(event)");
 		el.style.backgroundColor = color;
 
-		bigbox.appendChild(el);
+		Application.bigbox.appendChild(el);
 		this.element = el;
-
-		let go_left = bigbox.offsetWidth/2 - el.offsetWidth/2;
-		let go_top  = bigbox.offsetHeight/2 - el.offsetHeight/2;
-
-		let compStyle = getComputedStyle(el);
-		this.border_size = parseInt(compStyle.borderWidth);
-
-		this.setPostition(go_left, go_top, 0, 0);
+		this.border_size = parseInt(getComputedStyle(el).borderWidth);
+		this.setPostition(this.middleX(), this.middleY());
 		this.setMinMax();
 
 		el.Object = this;
 		return this.element;
 	}
 
-	setPostition(px, py, lx=px, ly=py) {
-		this.element.style.left = px +'px';
-		this.element.style.top = py +'px';
+	setPostition(px, py) {
+
+		let cor = this.correctForCollisions(px, py);
+
+		let lx = px; // -this.middleX();
+		let ly = py; // -this.middleY();
+		this.element.style.left = cor.x +'px';
+		this.element.style.top = cor.y +'px';
 		this.element.innerHTML = lx + ", " + ly;
+
+		this.left = cor.x - this.element.offsetWidth/2;
+		this.right = cor.x + this.element.offsetWidth/2;
+		this.top = cor.y - this.element.offsetHeight/2;
+		this.bottom = cor.y + this.element.offsetHeight/2;
+	}
+
+	resolveMove(ev) {
+		let dragbox = ev.target;
+		let posX = (ev.x - dragbox.Object.middleX());
+		let posY = (ev.y - dragbox.offsetHeight/2);
+
+		dragbox.Object.setPostition(posX, posY);
 	}
 
 	setMinMax() {
+		// allow overlapping borders
 		this.minX =  -this.border_size;
 		this.maxX =  Application.bigbox.offsetWidth  - this.element.offsetWidth - this.border_size;
 
 		this.minY = -this.border_size;
 		this.maxY =  Application.bigbox.offsetHeight - this.element.offsetHeight - this.border_size;
+	}
+
+	getSideLocations() {
+		return {
+			left:   this.left,
+			top:    this.top,
+			right:  this.right,
+			bottom: this.bottom,
+		};
+
+		// let corners = [
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// ];
 
 
 
-		// if(posX <= -borderSize) {
-		// 	cor.posX = -borderSize;
-		// }
-		// else if(posX >= bigbox.offsetWidth - dragbox.offsetWidth - borderSize) {
-		// 	cor.posX = bigbox.offsetWidth - dragbox.offsetWidth - borderSize;
-		// }
-		// else {
-		// 	cor.posX = posX;
-		// }
 
-		// if(posY <= -borderSize) {
-		// 	cor.posY = -borderSize;
-		// }
-		// else if(posY >= bigbox.offsetHeight - dragbox.offsetHeight - borderSize) {
-		// 	cor.posY = bigbox.offsetHeight - dragbox.offsetHeight - borderSize;
-		// }
-		// else {
-		// 	cor.posY = posY;
-		// }
+	}
+
+	middleX() {
+		return Application.bigbox.offsetWidth/2 - this.element.offsetWidth/2;
+	}
+
+	middleY() {
+		return Application.bigbox.offsetHeight/2 - this.element.offsetHeight/2;
+	}
+
+	boxMiddleX() {
+		return this.left + this.element.offsetWidth/2;
+	}
+
+	boxMiddleY() {
+		return this.top + this.element.offsetHeight/2;
+	}
+
+	// ideally, whatever "better" way of handing these can also handle big-box boundaries, too
+	correctForCollisions(posX, posY) {
+		let center = {
+			x: posX,
+			y: posY,
+		};
+
+		if(posX <= this.minX) {
+			center.x = this.minX;
+		}
+		else if(posX >= this.maxX) {
+			center.x = this.maxX;
+		}
+
+		if(posY <= this.minY) {
+			center.y = this.minY;
+		}
+		else if(posY >= this.maxY) {
+			center.y = this.maxY;
+		}
+
+		center = this.checkAgainstOtherBoxes(center);
+
+		return center;
+	}
+
+	checkAgainstOtherBoxes(center) {
+		Application.dragboxes.forEach(function(dragbox){
+			if (dragbox.Object !== this) {
+				let other = dragbox.Object;
+				let collide_right = false;
+				let collide_top = true;
+
+				if(collide_top && this.right >= other.left && this.left <= other.right ) {
+					if(this.top <= other.bottom && this.bottom >= other.boxMiddleY()) {
+						// console.log("south");
+						center.y = this.top + this.element.offsetHeight/2;
+					}
+					else if(this.bottom >= other.top && this.top <= other.boxMiddleY()) {
+						// console.log("north");
+						center.y = this.top + this.element.offsetHeight/2;
+					}
+				}
+
+				if(collide_right && this.bottom >= other.top && this.top <= other.bottom ) {
+					if(this.right >= other.left && this.right <= other.boxMiddleX()) {
+						// console.log("west");
+						center.x = this.left + this.element.offsetWidth/2;
+					}
+					else if(this.left <= other.right && this.left >= other.boxMiddleX()) {
+						// console.log("east");
+						center.x = this.left + this.element.offsetWidth/2;
+					}
+				}
+
+
+
+				// // if(this.right >= other.left && this.right <= other.boxMiddleX()) {
+				// 	if(this.bottom >= other.top && this.bottom <= other.boxMiddleY()) {
+				// 		center.y = this.bottom - this.element.offsetHeight;
+				// 	}
+				// 	else if(this.top <= other.bottom && this.top >= other.boxMiddleY()) {
+				// 		center.y = this.top + this.element.offsetHeight;
+				// 	}
+				// // }
+
+
+
+
+					// this.left <= other.right &&
+
+				   // ) {
+
+				// }
+			}
+		}.bind(this));
+
+		return center;
 	}
 }
 
