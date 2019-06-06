@@ -9,8 +9,11 @@ Application = {
 		this.bigbox = document.getElementById('bigbox');
 		this.blank = document.getElementById('blank');
 
+		this.middleX = this.bigbox.offsetWidth/2;
+		this.middleY = this.bigbox.offsetHeight/2;
+
 		this.greeny = new this.Classes.DragBox();
-		this.yellow = new this.Classes.DragBox('yellow');
+		this.yellow = new this.Classes.DragBox(this.middleX, this.middleY, 'yellow');
 
 		this.dragboxes = [this.greeny, this.yellow];
 	},
@@ -41,7 +44,7 @@ Application.Dragging = new (class Dragging {
 })();
 
 Application.Classes.DragBox = class DragBox {
-	constructor(color="green") {
+	constructor(posX=0, posY=0, color="green", ) {
 		let el = document.createElement("SPAN");
 		el.className = 'dragbox';
 		el.setAttribute("draggable", "true");
@@ -52,45 +55,53 @@ Application.Classes.DragBox = class DragBox {
 
 		Application.bigbox.appendChild(el);
 		this.element = el;
-		this.border_size = parseInt(getComputedStyle(el).borderWidth);
-		this.setPostition(this.middleX(), this.middleY());
+		this.border_LR = parseInt(getComputedStyle(el).borderWidth);
+		this.border_TB = parseInt(getComputedStyle(el).borderWidth);
+		this.offsetX = this.element.offsetWidth/2;
+		this.offsetY = this.element.offsetHeight/2;
+
+		// Twice as much offsetX to correct for 1 subtraction later (only in X direction)
+		this.bigboxOffsetX = Application.bigbox.offsetWidth/2 - this.offsetX*2;
+
+
+		// let cor = this.correctForCollisions(posX, posY);
+		this.setPostition(posX, posY);
 		this.setMinMax();
 
 		el.Object = this;
 		return this.element;
 	}
 
-	setPostition(px, py) {
+	// Values where to place center point inside bigbox
+	setPostition(posX, posY) {
+		this.left = posX - this.offsetX;
+		this.right = posX + this.offsetX;
+		this.top = posY - this.offsetY;
+		this.bottom = posY + this.offsetY;
 
-		let cor = this.correctForCollisions(px, py);
-
-		let lx = px; // -this.middleX();
-		let ly = py; // -this.middleY();
-		this.element.style.left = cor.x +'px';
-		this.element.style.top = cor.y +'px';
+		let lx = this.left; // -this.middleX();
+		let ly = this.top; // -this.middleY();
+		this.element.style.left = this.left +'px';
+		this.element.style.top = this.top +'px';
 		this.element.innerHTML = lx + ", " + ly;
-
-		this.left = cor.x - this.element.offsetWidth/2;
-		this.right = cor.x + this.element.offsetWidth/2;
-		this.top = cor.y - this.element.offsetHeight/2;
-		this.bottom = cor.y + this.element.offsetHeight/2;
 	}
 
 	resolveMove(ev) {
-		let dragbox = ev.target;
-		let posX = (ev.x - dragbox.Object.middleX());
-		let posY = (ev.y - dragbox.offsetHeight/2);
+		let evX = ev.x - this.bigboxOffsetX;
+		let evY = ev.y;
 
-		dragbox.Object.setPostition(posX, posY);
+
+
+		this.setPostition(evX, evY);
 	}
 
 	setMinMax() {
 		// allow overlapping borders
 		this.minX =  -this.border_size;
-		this.maxX =  Application.bigbox.offsetWidth  - this.element.offsetWidth - this.border_size;
+		this.maxX =  Application.bigbox.offsetWidth  - this.element.offsetWidth - this.border_LR;
 
 		this.minY = -this.border_size;
-		this.maxY =  Application.bigbox.offsetHeight - this.element.offsetHeight - this.border_size;
+		this.maxY =  Application.bigbox.offsetHeight - this.element.offsetHeight - this.border_TB;
 	}
 
 	getSideLocations() {
@@ -111,14 +122,6 @@ Application.Classes.DragBox = class DragBox {
 
 
 
-	}
-
-	middleX() {
-		return Application.bigbox.offsetWidth/2 - this.element.offsetWidth/2;
-	}
-
-	middleY() {
-		return Application.bigbox.offsetHeight/2 - this.element.offsetHeight/2;
 	}
 
 	boxMiddleX() {
