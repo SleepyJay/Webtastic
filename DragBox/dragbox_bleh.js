@@ -23,13 +23,9 @@ Application.Dragging = new (class Dragging {
 	dragStart(ev) {
 		ev.dataTransfer.effectAllowed = 'move';
 		ev.dataTransfer.setDragImage(Application.blank, 0, 0);
-		ev.target.Object.startX = ev.clientX;
-		ev.target.Object.startY = ev.clientY;
 	}
 
-	dragEnd(ev) {
-		ev.target.Object.finalizeMove(ev);
-	}
+	dragEnd(ev) { /* EMPTY */ }
 
 	drag(ev) {
 		ev.target.Object.resolveMove(ev);
@@ -61,44 +57,42 @@ Application.Classes.DragBox = class DragBox {
 		this.element = el;
 		this.border_LR = parseInt(getComputedStyle(el).borderWidth);
 		this.border_TB = parseInt(getComputedStyle(el).borderWidth);
-
 		this.offsetX = this.element.offsetWidth/2;
 		this.offsetY = this.element.offsetHeight/2;
+
+		// Twice as much offsetX to correct for 1 subtraction later (only in X direction)
 		this.bigboxOffsetX = Application.bigbox.offsetWidth/2 - this.offsetX*2;
 
 
-		let cor = this.correctForCollisions(posX -  this.offsetX, posY - this.offsetY);
-		this.setPostition(cor.left, cor.top);
-		this.left = cor.left;
-		this.top = cor.top;
+		// let cor = this.correctForCollisions(posX, posY);
+		this.setPostition(posX, posY);
 		this.setMinMax();
 
 		el.Object = this;
 		return this.element;
 	}
 
-	// Put box to this (left,top) position; make corrections before passing here
-	setPostition(left, top) {
-		let lx = left; // -this.middleX();
-		let ly = top; // -this.middleY();
-		this.element.style.left = left +'px';
-		this.element.style.top = top +'px';
+	// Values where to place center point inside bigbox
+	setPostition(posX, posY) {
+		this.left = posX - this.offsetX;
+		this.right = posX + this.offsetX;
+		this.top = posY - this.offsetY;
+		this.bottom = posY + this.offsetY;
+
+		let lx = this.left; // -this.middleX();
+		let ly = this.top; // -this.middleY();
+		this.element.style.left = this.left +'px';
+		this.element.style.top = this.top +'px';
 		this.element.innerHTML = lx + ", " + ly;
 	}
 
-	finalizeMove(ev) {
-		this.left   += (ev.clientX - this.startX);
-		this.right  += this.element.offsetWidth;
-		this.top    += (ev.clientY - this.startY);
-		this.bottom += this.element.offsetHeight;
-		console.log([this.left, this.right, this.top, this.bottom])
-	}
-
 	resolveMove(ev) {
-		let newLeft = this.left + ev.clientX - this.startX;
-		let newTop  = this.top + ev.clientY - this.startY;
-		let cor = this.correctForCollisions(newLeft, newTop);
-		this.setPostition(cor.left, cor.top);
+		let evX = ev.x - this.bigboxOffsetX;
+		let evY = ev.y;
+
+
+
+		this.setPostition(evX, evY);
 	}
 
 	setMinMax() {
@@ -110,13 +104,40 @@ Application.Classes.DragBox = class DragBox {
 		this.maxY =  Application.bigbox.offsetHeight - this.element.offsetHeight - this.border_TB;
 	}
 
+	getSideLocations() {
+		return {
+			left:   this.left,
+			top:    this.top,
+			right:  this.right,
+			bottom: this.bottom,
+		};
+
+		// let corners = [
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// 	{x: 0, y: 0},
+		// ];
+
+
+
+
+	}
+
+	boxMiddleX() {
+		return this.left + this.element.offsetWidth/2;
+	}
+
+	boxMiddleY() {
+		return this.top + this.element.offsetHeight/2;
+	}
+
 	// ideally, whatever "better" way of handing these can also handle big-box boundaries, too
 	correctForCollisions(posX, posY) {
 		let center = {
-			left: posX  ,
-			top: posY ,
+			x: posX,
+			y: posY,
 		};
-		return center;
 
 		if(posX <= this.minX) {
 			center.x = this.minX;
@@ -189,34 +210,6 @@ Application.Classes.DragBox = class DragBox {
 		}.bind(this));
 
 		return center;
-	}
-
-	getSideLocations() {
-		return {
-			left:   this.left,
-			top:    this.top,
-			right:  this.right,
-			bottom: this.bottom,
-		};
-
-		// let corners = [
-		// 	{x: 0, y: 0},
-		// 	{x: 0, y: 0},
-		// 	{x: 0, y: 0},
-		// 	{x: 0, y: 0},
-		// ];
-
-
-
-
-	}
-
-	boxMiddleX() {
-		return this.left + this.element.offsetWidth/2;
-	}
-
-	boxMiddleY() {
-		return this.top + this.element.offsetHeight/2;
 	}
 }
 
